@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pickup and Drop-off Locations with Route Display</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        /* Your CSS styles here */
+        #map {
+            width: 100%;
+            height: 400px;
+            position: relative;
+        }
+        #suggestions {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #suggestions li {
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #suggestions li:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <input type="text" id="pickup-input" placeholder="Enter pickup address in Canada">
+    <input type="text" id="dropoff-input" placeholder="Enter drop-off address in Canada">
+    <!-- Apply Bootstrap styling to the suggestions list -->
+    <ul id="suggestions" class="list-group w-100"></ul>
+    <!-- Set the map container explicitly -->
+    <div id="map" class="w-100"></div>
+    <div id="result"></div> <!-- Display the result here -->
+    
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize the Leaflet map with the default location set to Brantford, Canada
+        const map = L.map('map').setView([43.1394, -80.2471], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        // Initialize Nominatim
+        const nominatimEndpoint = "https://nominatim.openstreetmap.org/search";
+
+        const pickupInput = document.getElementById("pickup-input");
+        const dropoffInput = document.getElementById("dropoff-input");
+        const suggestionsList = document.getElementById("suggestions");
+
+        let pickupCoordinates = null;
+        let dropoffCoordinates = null;
+      
+
+        function addMarkerAndZoomToLocation(result, inputElement, label) {
+            const marker = L.marker([result.lat, result.lon]).addTo(map);
+            marker.bindPopup(label).openPopup();
+            inputElement.value = result.display_name;
+            suggestionsList.innerHTML = "";
+    
+            // Center and zoom the map on the selected location
+            map.setView([result.lat, result.lon], 16); // You can adjust the zoom level as needed
+    }
+
+        function createListItemWithEvent(result, inputElement, label) {
+            const listItem = document.createElement("li");
+            listItem.textContent = result.display_name;
+            listItem.className = "list-group-item pointer";
+            listItem.addEventListener("click", function() {
+                addMarkerAndZoomToLocation(result, inputElement, label);
+                if (inputElement === dropoffInput) {
+                    // Handle drop-off selection
+                    dropoffCoordinates = `${result.lat},${result.lon}`;
+                }
+            });
+            return listItem;
+        }
+
+        // Function to fetch and display address suggestions for pickup and drop-off in Canada
+        pickupInput.addEventListener("input", function() {
+            const query = pickupInput.value;
+            suggestionsList.innerHTML = "";
+
+            // Fetch address suggestions from Nominatim for Canada
+            fetch(`${nominatimEndpoint}?q=${query}&format=json&countrycodes=CA&bounded=1&viewbox=-141.0,41.7,-52.6,83.1`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(result => {
+                        suggestionsList.appendChild(createListItemWithEvent(result, pickupInput, 'A'));
+                    });
+                });
+        });
+
+      dropoffInput.addEventListener("input", function() {
+            const query = dropoffInput.value;
+            suggestionsList.innerHTML = "";
+        
+            // Fetch address suggestions from Nominatim for Canada
+            fetch(`${nominatimEndpoint}?q=${query}&format=json&countrycodes=CA&bounded=1&viewbox=-141.0,41.7,-52.6,83.1`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(result => {
+                        suggestionsList.appendChild(createListItemWithEvent(result, dropoffInput, 'B'));
+                    });
+                });
+        });
+        
+     
+    
+    </script>
+
+    <!-- Include Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
